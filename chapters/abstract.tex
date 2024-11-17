@@ -1,0 +1,10 @@
+\chapter{Abstract}
+Il problema SAT è uno dei problemi più studiati in informatica da decenni: è stato infatti il primo problema di cui si è dimostrata l'NP-completezza e trova molte applicazioni pratiche, dalla verifica formale del software o dell'hardware alla gestione delle dipendenze nei packet manager.\\
+\\
+Nonostante decenni di ricerca e progressi su numerosi fronti, molte importanti domande rimangono però ancora aperte. L'interrogativo principale rimane: “Esiste un algoritmo polinomiale per la risoluzione di SAT?” e, di conseguenza, P = NP?.
+Tutti gli algoritmi risolutivi conosciuti richiedono tempo esponenziale nel numero di variabili, e il problema SAT viene quindi considerato intrattabile.\\
+Nel corso degli anni sono state però studiate particolari classi di WFF, come le formule di Horn, facilmente risolvibili in tempo polinomiale, e sono stati sviluppati algoritmi che, pur mantenendo un caso peggiore pari a $O(2^n)$, rendono il problema SAT trattabile nel caso medio. I SAT solver moderni, infatti, riescono ormai a risolvere WFF con migliaia di variabili e milioni di clausole in poche ore.\\
+\\
+Verranno quindi studiati i principali algoritmi che vengono utilizzati tutt'oggi e le tecniche per velocizzare la loro esecuzione.
+Verrà poi definita una rappresentazione per le WFF che permetterà di non descriverle esplicitamente, ma solo di indicare quali clausole sono presenti al loro interno. Su questa rappresentazione saranno poi implementati, oltre agli algoritmi studiati nella fase iniziale, alcuni algoritmi utili nella manipolazione delle WFF e degli assegnamenti. Verranno individuati anche casi particolari in cui è possibile migliorare il loro tempo di esecuzione, come nel caso della scomposizione di una WFF in sotto-WFF indipendenti.
+Infine si procederà con uno studio della struttura delle WFF, che permetterà di stabilire un limite superiore al numero di WFF difficili da risolvere e di individuare alcuni casi particolari in cui è possibile stabilire in tempo polinomiale che una WFF non è soddisfacibile, ancor prima di eseguire un SAT solver.

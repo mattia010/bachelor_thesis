@@ -1,0 +1,342 @@
+\chapter{Algoritmi su WFF come stringhe binarie}
+
+\section{Stabilire se una clausola è soddisfatta da un assegnamento}
+Una clausola è soddisfatta da un assegnamento se e solo se almeno uno 
+dei suoi letterali risulta vero.
+\begin{algorithm}[H]
+    \caption{Algoritmo per stabilire se una clausola è soddisfatta da un assegnamento.}
+    \label{alg:is_clause_sat}
+    \begin{algorithmic}[1]
+        \Procedure{Is-clause-satisfied}{clause, assignment}
+            \If{assignment.superposVarNum $\neq$ 0}
+                \State \textbf{error}
+            \EndIf
+            \If{clause.length $>$ assignment.length}
+                \State \textbf{error}
+            \EndIf
+            \For{i $\gets$ to clause.length - 1}
+                \If{clause.vars[i] $\ge$ assignment.length}
+                    \State \textbf{error}
+                \EndIf
+            \EndFor\\
+
+            \For{i $\leftarrow$ 0 to clause.length - 1} 
+                \State varIndex $\gets$ clause.vars[i]
+                \State varValue $\gets$ assignment.varValues[varIndex]
+                \State litValue $\gets$ varValue $\oplus$ clause.isNeg[i]
+                \If{litValue}
+                    \State \Return true 
+                \EndIf
+            \EndFor
+            \State \Return false
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+Questa procedura ha complessità costante $\Theta(1)$, in quanto $k$ (e quindi clause.length) è costante: qualunque sia il numero 
+delle variabili su cui è definito l'assegnamento, ogni chiamata, nel caso peggiore, esegue il 
+corpo del ciclo $k$ volte.
+
+\section{Trovare le clausole soddisfatte da un assegnamento}
+Il problema di trovare le clausole verificate da un assegnamento può anche essere definito
+come trovare quali delle possibili $2^k \binom{n}{k}$ $k$-clausole definibili sulle $n$
+variabili dell'assegnamento risultano vere.\\
+Questa procedura riceve un assegnamento di lunghezza $n$ 
+e un intero $k$ che identifica a quale problema $k$-SAT si
+sta facendo riferimento, e restituisce una WFF di lunghezza $2^k \cdot \binom{n}{k}$,
+in cui l'$i$-esimo bit viene impostato a 1 se la clausola di indice
+$i$ risulta soddisfatta, 0 altrimenti.
+\begin{algorithm}[H]
+    \caption{Algoritmo per trovare tutte le clausole soddisfatte da un assegnamento.}
+    \label{alg:find_sat_clauses}
+    \begin{algorithmic}[1]
+        \Procedure{Find-sat-clauses}{assignment, k}  
+            \If{assignment.superposVarNum $\neq$ 0}
+                \State \textbf{error}
+            \EndIf
+            \If{k $>$ assignment.length}
+                \State \textbf{error}
+            \EndIf\\
+
+            \State varNum $\gets$ assignment.length
+            \State satClauses $\gets$ \Call{Construct-wff}{varNum, k}
+            \State tmpClause $\gets$ \Call{Construct-clause}{k}\\
+
+            \For{i $\gets$ 0 to satClauses.length - 1}
+                \If{\Call{Is-clause-satisfied}{tmpClause, assignment}}
+                    \State \Call{Add-clause-to-wff}{satClauses, tmpClause, i}
+                \EndIf
+                \State \Call{Increment-clause}{tmpClause, varNum}
+            \EndFor
+            \State \Return satClauses
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+Le chiamate a \textsc{Is-clause-satisfied}, \textsc{Increment-clause} e \textsc{Add-clause-to-wff} hanno complessità costante.
+Il corpo del ciclo viene invece eseguito $2^k \binom{n}{k}$ volte, 
+dove $n$ è il numero di variabili. Ogni esecuzione del corpo
+corrisponde alla valutazione di una delle possibili clausole definibili
+su $n$ variabili.\\
+Di conseguenza, la complessità dell'algoritmo è $\Theta (n^k)$.
+
+
+\section{Trovare le WFF soddisfatte da un assegnamento}
+Generare ogni WFF per poi verificare la sua soddisfacibilità sarebbe 
+poco efficiente, in quanto il tempo di calcolo sarebbe \textit{esponenziale nel numero
+di possibili clausole}.\\
+Viene quindi presentato un algoritmo per trovare le WFF soddisfatte
+\textit{esponenziale nel numero di clausole soddisfatte dall'assegnamento}.\\
+\\
+Il numero di WFF soddisfatte da un assegnamento è pari a $2^{\bra{2^k - 1} \binom{n}{k}}$
+e ogni WFF richiede, considerando solo la stringa binaria che la rappresenta,
+un numero di bit pari a $2^k \cdot \binom{n}{k}$.
+Se si memorizzassero quindi tutte le WFF soddisfatte, per poi stamparle, servirebbe
+una quantità di memoria molto grande: per un problema $5$-SAT su 30 variabili, ad
+esempio, servirebbero $2^{4417643} \cdot 4417686$ TB.
+Per risolvere questo problema, quindi, una WFF viene immediatamente 
+stampata e la stessa area di memoria viene modificata per 
+ottenere la prossima WFF soddisfatta, che a sua volta verrà stampata e così via.
+\begin{algorithm} [H]
+    \caption{Algoritmo per trovare le WFF soddisfatte da un assegnamento}
+    \label{alg:find_sat_wff}
+    \begin{algorithmic}[1]
+        \Procedure{Find-satisfied-wff}{assignment, k}
+            \If{assignment.superposVarNum $\neq$ 0}
+                \State \textbf{error}
+            \EndIf
+            \If{k $>$ assignment.length}
+                \State \textbf{error}
+            \EndIf\\
+
+            \State varNum $\gets$ assignment.length
+            \State satClauses $\gets$ \Call{Find-sat-clauses}{assignment, k}
+            \State clausesNum $\gets$ satClauses.length
+            \State satClausesNum $\gets$ satClauses.presentClausesNum
+            \State tmpWff $\gets$ \Call{Construct-wff}{varNum, k}
+            \State tmpCl $\gets$ \Call{Construct-clause}{k}\\
+            
+            \For{j $\gets$ 0 to \Call{Pow}{2, satClausesNum} - 1}
+                \State \Call{Print-wff}{wff}
+                \State \Call{Reset-clause}{tmpCl}
+                \For{i $\gets$ 0 to clausesNum - 1}
+                    \If{satClauses.isClausePresent[i]}
+                        \If{tmpWff.isClausePresent[i]}
+                            \State \Call{Remove-clause-from-wff}{tmpWff, tmpCl, i} 
+                        \Else                    
+                            \State \Call{Add-clause-to-wff}{tmpWff, tmpCl, i}
+                            \State \textbf{break}
+                        \EndIf
+                    \EndIf
+                    \State \Call{Increment-clause}{tmpCl, varNum}
+                \EndFor
+            \EndFor
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+Le chiamate a \textsc{Reset-clause}, \textsc{Remove-clause-from-wff}, \textsc{Add-clause-to-wff} e \textsc{Increment-clause} hanno complessità costante.\\
+Detto $c$ il costo della chiamata
+a \textsc{Print-wff}, essa deve essere eseguita su esattamente $2^{\bra{2^k - 1}\binom{n}{k}}$ WFF. Detto invece $r_i$ il numero di bit impostati a 1 a destra dell'$i$-esimo bit, su esso verrà effettuato un numero di controlli pari a:
+\begin{equation*}
+    \frac{2^{\bra{2^k - 1} \binom{n}{k}}}{2^{r_i}}
+\end{equation*}
+Il caso peggiore si verifica quando tutti i $\binom{n}{k}$ bit impostati a 0 sono quelli meno significativi della WFF, e la sua complessità è pari a:
+\begin{equation*}
+    O \bra{2^{\bra{2^k - 1}\binom{n}{k}} \cdot \bra{c + \binom{n}{k}} 
+    + \sum_{i=1}^{(2^k - 1)\binom{n}{k}} \frac{2^{\bra{2^k - 1}\binom{n}{k}}}{2^{i-1}}} 
+    = O\bra{2^{O\bra{n^k}} \cdot \bra{c + O\bra{n^k}}}
+\end{equation*}
+Questo algoritmo può essere in realtà utilizzato per effettuare un'operazione
+qualsiasi su tutte le WFF soddisfatte dall'assegnamento: basta infatti sostituire
+la riga 15 con l'operazione desiderata.
+
+\section{Stabilire quali clausole di una WFF sono soddisfatte da un assegnamento}
+Per stabilire quali clausole di una WFF di un problema $k$-SAT sono soddisfatte da un assegnamento su $n$ variabili
+bisogna utilizzare un algoritmo molto simile a quello per trovare le clausole generiche
+soddisfatte da un assegnamento, al quale però viene aggiunta la condizione che una 
+clausola verificata debba anche essere presente nella WFF fornita.
+Anche in questo caso viene restituita una stringa binaria $\langle x_0, \ldots, x_{m - 1} \rangle$, con
+$m = 2^k \cdot \binom{n}{k}$, il cui $i$-esimo bit è:
+\begin{equation*}
+    x_i = \begin{cases}
+        1 & \tn{clausola di indice } i \tn{ compare nella WFF } \land \tn{ clausola è soddisfatta} \\
+        0 & \tn{altrimenti}
+    \end{cases}
+\end{equation*}
+\begin{algorithm}[H]
+    \caption{Algoritmo per trovare tutte le clausole di una WFF soddisfatte da un assegnamento.}
+    \label{alg:find_wff_sat_clauses}
+    \begin{algorithmic}[1]
+        \Procedure{Find-wff-sat-clauses}{wff, assg}
+            \If{wff.varNum $\neq$ assg.length}
+                \State \textbf{error}
+            \EndIf
+            \If{assg.superposVarNum $\neq$ 0}
+                \State \textbf{error}
+            \EndIf
+            \If{wff.kSat $>$ assg.length}
+                \State \textbf{error}
+            \EndIf\\
+
+            \State k $\gets$ wff.kSat 
+            \State varNum $\gets$ assg.length
+            \State wffSatClauses $\gets$ \Call{Construct-wff}{varNum, k}
+            \State tmpCl $\gets$ \Call{Construct-clause}{k}\\
+
+            \For{i $\gets$ 0 to wffSatClauses.length - 1}
+                \If{wff.isClausePresent[i] $\land$ \Call{Is-clause-satisfied}{tmpCl, assg}}
+                    \State \Call{Add-clause-to-wff}{wffSatClauses, tmpCl, i}
+                \EndIf
+                \State \Call{Increment-clause}{tmpCl, varNum}
+            \EndFor
+            \State \Return wffSatClauses
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+Le chiamate a \textsc{Add-clause-to-wff} e \textsc{Increment-clause} hanno complessità costante. Di conseguenza, la complessità dell'algoritmo è polinomiale e pari a:
+\begin{equation*}
+    \Theta \bra{2^k \binom{n}{k}} = \Theta(n^k)
+\end{equation*}
+
+\section{Stabilire se una WFF è soddisfatta da un assegnamento}
+Una WFF è soddisfatta da un assegnamento se e solo se tutte le sue clausole sono soddisfatte.
+Si utilizza un algoritmo simile a quello per trovare quali clausole
+di una WFF sono soddisfatte da un assegnamento, ma se una clausola presente
+nella WFF non risulta soddisfatta si restituisce immediatamente false.
+\begin{algorithm}[H]
+    \caption{Algoritmo per stabilire se una WFF è soddisfatta da un dato assegnamento}
+    \label{alg:is_wff_satisfied}
+    \begin{algorithmic}
+        \Procedure{Is-wff-satisfied}{wff, assg}
+            \If{wff.varNum $\neq$ assg.length}
+                \State \textbf{error}
+            \EndIf
+            \If{assg.superposVarNum $\neq$ 0}
+                \State \textbf{error}
+            \EndIf
+            \If{wff.kSat $>$ assg.length}
+                \State \textbf{error}
+            \EndIf\\
+
+            \State k $\gets$ wff.kSat
+            \State varNum $\gets$ assg.length
+            \State tmpCl $\gets$ \Call{Construct-clause}{k}\\
+
+            \For{i $\gets$ 0 to wff.length - 1}
+                \If{wff.isClausePresent[i] $\land$ !\Call{Is-clause-satisfied}{tmpCl, assg}}
+                    \State \Return false
+                \EndIf
+                \State \Call{Increment-clause}{tmpCl, varNum}
+            \EndFor
+            \State \Return true
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+Le chiamate a \textsc{Is-clause-satisfied} e \textsc{Increment-clause} hanno complessità
+costante e, di conseguenza, l'algoritmo ha complessità polinomiale:
+\begin{equation*}
+    O \bra{2^k \binom{n}{k}} = O \bra{n^k}
+\end{equation*}
+
+
+\section{Ridurre la dimensione di una WFF}
+Utilizzando una rappresentazione binaria per le WFF, è possibile che una variabile sia
+considerata appartenente ad essa ma che in realtà nessuna clausola che la contiene compaia 
+effettivamente nella WFF: essa può quindi essere rimossa, diminuendo il numero 
+totale di variabili su cui la WFF è definita e di conseguenza la sua dimensione.
+La rimozione comporta, in pratica, l'accorciamento della WFF, effettuato rimuovendo
+tutti i bit che rappresentano clausole contenenti almeno un letterale su una variabile assente nella 
+WFF.
+Siccome le variabili considerate non compaiono nella WFF, tutti i bit che verranno rimossi
+saranno uguali a 0.\\
+Se $r$ è il numero di variabili che possono essere rimosse, la WFF accorciata
+avrà un numero di possibili clausole pari a:
+\begin{equation*}
+    m = 2^k \cdot \binom{n-r}{k}
+\end{equation*}
+
+\begin{algorithm}[H]
+    \caption{Algoritmo per contare il numero di variabili rimuovibili.}
+    \label{alg:count_rem_vars}
+    \begin{algorithmic}[1]
+        \Procedure{Count-removable-vars}{wff}
+            \State r $\gets$ 0
+            \For{i $\gets$ 0 to wff.varNum - 1}
+                \If{wff.litCount[i] + wff.litCount[i + wff.varNum] = 0}
+                    \State ++r
+                \EndIf
+            \EndFor
+            \State \Return r
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+    \caption{Algoritmo per verificare se una clausola è rimuovibile.}
+    \begin{algorithmic}[1]
+        \Procedure{Is-clause-removable}{clause, wff}
+            \If{clause.length $\neq$ wff.kSat}
+                \State \textbf{error}
+            \EndIf
+            \For{i $\gets$ 0 to clause.length - 1}
+                \If{clause.vars[i] $\ge$ wff.varNum}
+                    \State \textbf{error}
+                \EndIf
+            \EndFor\\
+
+            \For{i $\gets$ 0 to clause.length - 1}
+                \State var $\gets$ clause.vars[i]
+                \If{wff.litCount[var] + wff.litCount[var + wff.varNum] = 0}
+                    \State \Return true
+                \EndIf
+            \EndFor
+            \State \Return false
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+    \caption{Algoritmo per accorciare una WFF}
+    \label{alg:shorten_wff}
+    \begin{algorithmic}[1]
+        \Procedure{Shorten-wff}{wff}
+            \State r $\gets$ \Call{Count-removable-vars}{wff}
+            \If{r = 0}
+                \State \Return
+            \EndIf\\
+
+            \State k $\gets$ wff.kSat
+            \State newVarNum $\gets$ wff.varNum - r
+            \State shortWff $\gets$ \Call{Construct-wff}{newVarNum, k}
+            \State clause $\gets$ \Call{Construct-clause}{k}\\
+
+            \State tmp $\gets$ 0
+            \State newLitCount $\gets$ nuovo array di interi di lunghezza 2 $\cdot$ newVarNum
+            \For{i $\gets$ 0 to wff.varNum - 1}
+                \If{wff.litCount[i] + wff.litCount[i + wff.varNum] $\neq$ 0}
+                    \State newLitCount[tmp] $\gets$ wff.litCount[i]
+                    \State newLitCount[tmp + newVarNum] $\gets$ wff.litCount[i +wff.varNum]
+                    \State ++tmp
+                \EndIf
+            \EndFor
+            \State shortWff.litCount $\gets$ newLitCount
+            \State shortWff.presentClausesNum $\gets$ wff.presentClausesNum\\
+            
+            \State tmp $\gets$ 0
+            \For{i $\gets$ 0 to wff.length - 1}
+                \If{!\Call{Is-clause-removable}{clause, wff}}
+                    \State shortWff.isClausePresent[tmp] $\gets$ wff.isClausePresent[i]
+                    \State ++tmp
+                \EndIf
+                \State \Call{Increment-clause}{clause, wff.varNum}
+            \EndFor
+            \State wff $\gets$ shortWff
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+Sia $n$ il numero di variabili su cui è definita la WFF. 
+\textsc{Count-removable-vars} ha complessità lineare $\Theta(n)$, mentre
+l'algoritmo \textsc{Is-clause-removable} ha complessità costante $\Theta(1)$.\\
+Per quanto riguarda \textsc{Shorten-wff}, la sua complessità è pari a:
+\begin{equation*}
+    \Theta(n) + O(n) + O \bra{2^k \binom{n}{k}} = O \bra{n^k}
+\end{equation*}
+ed è quindi polinomiale nel numero di variabili.

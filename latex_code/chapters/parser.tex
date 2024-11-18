@@ -1,0 +1,49 @@
+\chapter{DIMACS CNF parser}
+Durante l'implementazione dei precedenti algoritmi è
+stato necessario trovare un modo di salvare e leggere WFF su file, in modo da poter 
+memorizzare quelle considerate più interessanti o eseguire gli algoritmi su WFF generate
+da altre persone.
+Si è quindi scelto di sviluppare un piccolo parser basato sul formato DIMACS CNF \cite{dimacs-cnf}, 
+standard de-facto nella rappresentazione delle CNF-WFF. La sua 
+funzione è sia quella di convertire una WFF da formato binario a DIMACS CNF, per poi
+salvarla su file, che leggere una WFF in DIMACS CNF da file e convertirla in formato 
+binario, in modo tale da essere manipolabile dagli algoritmi di questo lavoro.\\
+Dovendo gli algoritmi operare solo su WFF $k$-SAT in cui ogni clausola ha esattamente $k$ letterali, se il file presenta clausole di dimensione differente, il parser si occupa di renderle tutte della stessa dimensione, come descritto nella sezione 3.1.\\
+Se una clausola presenta letterali opposti sulla stessa variabile, e non potendo rappresentare questo caso nella rappresentazione binaria adottata, allora la clausola, che è una tautologia, viene rimossa dalla WFF.
+Se invece una clausola presenta più ripetizioni dello stesso letterale, solo un letterale viene mantenuto, mentre tutte le copie vengono scartate.\\
+\\
+Prima di descrivere il funzionamento del parser, è utile analizzare il formato DIMACS CNF.
+Questo formato permette di rappresentare tutte le CNF-WFF, ovvero tutte quelle WFF che sono congiunzione di disgiunzioni di letterali.
+Detto $n$ il numero di variabili presenti nella WFF, a ogni variabile viene associato un indice $i, 1 \le i \le n$. Un letterale positivo viene rappresentato come l'indice della variabile su cui è definito, mentre un letterale negativo viene rappresentato sempre dall'indice della variabile, il quale però viene preceduto dal simbolo "-" (meno).\\
+Ogni clausola viene rappresentata invece elencando i suoi letterali, separati da uno spazio, e la sua terminazione viene indicata con il numero 0.
+Solitamente, clausole diverse sono poste su righe differenti del file: il carattere separatore per le clausole rimane comunque 0, e spezzare una clausola su più righe non comporta alcun errore.\\
+Molti parser richiedono inoltre un header, posto a inizio file, della forma:
+\begin{center}
+    \verb|p cnf <varNum> <clausesNum>|
+\end{center}
+che indica il numero di variabili su cui la WFF è definita e il numero di clausole presenti.\\
+Opzionalmente, è possibile aggiungere dei commenti utilizzando la seguente sintassi:
+\begin{center}
+    \verb|c <comment>|
+\end{center}
+Esempio:\\
+La codifica in DIMACS CNF di $(x_1 \lor$ ¬$x_4, \lor x_2) \land (x_1 \lor x_4 \lor x_5) \land ($¬$x_2 \lor $¬$x_3)$ è:\\
+\verb|c questo è un commento|\\
+\verb|p cnf 5 3|\\
+\verb|1 -4 2 0|\\
+\verb|1 4 5 0|\\
+\verb|-2 -3 0|\\
+\\
+Per quanto riguarda il parser, il suo funzionamento può essere così riassunto:
+\begin{enumerate}
+    \item legge una riga da file;
+    \item se ha letto end-of-file, allora passa al punto 8;
+    \item altrimenti, salva in memoria la clausola letta sotto forma di vettore di letterali;
+    \item ordina il vettore in modo tale da ottenere una clausola in forma "standard";
+    \item verifica se è possibile rimuovere la clausola (letterali opposti e quindi tautologia) o se è possibile accorciarla (ripetizioni dello stesso letterale), ed eventualmente esegue la modifica su di essa;
+    \item aggiunge poi il vettore che rappresenta la clausola a un vettore di clausole, che rappresenta la WFF;
+    \item torna al punto 1;
+    \item modifica le clausole presenti nel vettore delle clausole in modo che siano tutte di dimensione $k$;
+    \item ordina il vettore delle clausole secondo la relazione d'ordine definita sulle clausole nella sezione 3.1;
+    \item istanzia una WFF e, scorrendo il vettore delle clausole, imposta a 1 i bit che corrispondono alle clausole presenti nel vettore.
+\end{enumerate}
